@@ -22,25 +22,30 @@ interface ExpensesChartProps {
 
 export function ExpensesChart({ expenses }: ExpensesChartProps) {
   const getDayName = (date: string) => {
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const dayIndex = new Date(date).getDay();
-    return dayNames[dayIndex];
+    // Convert Sunday (0) to 6, and other days to 0-5
+    const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1;
+    return dayNames[adjustedIndex];
   };
 
   // Get dates for Mon-Sun of current week
   const getCurrentWeekDates = () => {
     const today = new Date();
     const currentDay = today.getDay();
-    const diff = currentDay === 0 ? 6 : currentDay - 1; // Adjust to make Monday the first day
+    // Adjust diff calculation to make Monday the first day
+    const diff = currentDay === 0 ? 6 : currentDay - 1;
     
     const monday = new Date(today);
     monday.setDate(today.getDate() - diff);
     
-    return Array.from({ length: 7 }, (_, i) => {
+    const weekDates = [];
+    for (let i = 0; i < 7; i++) {
       const date = new Date(monday);
       date.setDate(monday.getDate() + i);
-      return date.toISOString().split('T')[0];
-    });
+      weekDates.push(date.toISOString().split('T')[0]);
+    }
+    return weekDates;
   };
 
   const weekDates = getCurrentWeekDates();
@@ -56,6 +61,12 @@ export function ExpensesChart({ expenses }: ExpensesChartProps) {
     };
   });
 
+  // Sort the data to ensure Monday comes first
+  const orderedDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const sortedChartData = [...chartData].sort((a, b) => 
+    orderedDays.indexOf(a.day) - orderedDays.indexOf(b.day)
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -64,7 +75,7 @@ export function ExpensesChart({ expenses }: ExpensesChartProps) {
       <CardContent>
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData}>
+            <BarChart data={sortedChartData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="day" />
               <YAxis />
