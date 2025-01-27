@@ -23,21 +23,24 @@ interface ExpensesChartProps {
 export function ExpensesChart({ expenses }: ExpensesChartProps) {
   const getDayName = (date: string) => {
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const dayIndex = new Date(date).getDay();
-    // Convert Sunday (0) to 6, and other days to 0-5
-    const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1;
-    return dayNames[adjustedIndex];
+    const d = new Date(date);
+    // Get day of week (0-6, starting from Sunday)
+    const day = d.getDay();
+    // Convert to Monday-based index (0-6, starting from Monday)
+    const mondayBasedIndex = day === 0 ? 6 : day - 1;
+    return dayNames[mondayBasedIndex];
   };
 
   // Get dates for Mon-Sun of current week
   const getCurrentWeekDates = () => {
     const today = new Date();
     const currentDay = today.getDay();
-    // Adjust diff calculation to make Monday the first day
+    // Calculate days to subtract to get to Monday (0 = Sunday, so we need 6 for Monday)
     const diff = currentDay === 0 ? 6 : currentDay - 1;
     
     const monday = new Date(today);
     monday.setDate(today.getDate() - diff);
+    monday.setHours(0, 0, 0, 0); // Reset time part
     
     const weekDates = [];
     for (let i = 0; i < 7; i++) {
@@ -51,9 +54,11 @@ export function ExpensesChart({ expenses }: ExpensesChartProps) {
   const weekDates = getCurrentWeekDates();
   
   const chartData = weekDates.map((date) => {
-    const dayExpenses = expenses.filter(
-      (e) => e.date.split("T")[0] === date
-    );
+    const dayExpenses = expenses.filter((e) => {
+      const expenseDate = new Date(e.date);
+      const compareDate = new Date(date);
+      return expenseDate.toDateString() === compareDate.toDateString();
+    });
     const total = dayExpenses.reduce((sum, e) => sum + e.amount, 0);
     return {
       day: getDayName(date),
