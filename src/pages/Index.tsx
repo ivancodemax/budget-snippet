@@ -23,6 +23,7 @@ interface Expense {
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [showSignup, setShowSignup] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
 
   useEffect(() => {
     // Check for existing session
@@ -71,7 +72,13 @@ const Index = () => {
   });
 
   const handleAuth = async (email: string, password: string) => {
+    if (isAuthLoading) {
+      toast.error("Please wait before trying again");
+      return;
+    }
+
     try {
+      setIsAuthLoading(true);
       const { error } = showSignup
         ? await supabase.auth.signUp({
             email,
@@ -82,7 +89,14 @@ const Index = () => {
             password,
           });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes("rate_limit")) {
+          toast.error("Please wait a moment before trying again");
+        } else {
+          toast.error(error.message);
+        }
+        return;
+      }
 
       toast.success(
         showSignup
@@ -90,7 +104,12 @@ const Index = () => {
           : "Login successful!"
       );
     } catch (error: any) {
-      toast.error(error.message);
+      const errorMessage = error.message.includes("rate_limit")
+        ? "Please wait a moment before trying again"
+        : error.message;
+      toast.error(errorMessage);
+    } finally {
+      setIsAuthLoading(false);
     }
   };
 
@@ -125,10 +144,14 @@ const Index = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
         <h1 className="text-4xl font-bold mb-8 text-primary">Expense Tracker</h1>
-        <AuthForm type={showSignup ? "signup" : "login"} onSubmit={handleAuth} />
+        <AuthForm 
+          type={showSignup ? "signup" : "login"} 
+          onSubmit={handleAuth}
+        />
         <button
           onClick={() => setShowSignup(!showSignup)}
           className="mt-4 text-sm text-gray-600 hover:text-primary"
+          disabled={isAuthLoading}
         >
           {showSignup
             ? "Already have an account? Login"
