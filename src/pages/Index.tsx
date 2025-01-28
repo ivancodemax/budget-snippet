@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { ExpenseForm } from "@/components/expenses/ExpenseForm";
 import { ExpensesList } from "@/components/expenses/ExpensesList";
 import { ExpensesChart } from "@/components/expenses/ExpensesChart";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 interface User {
   email: string;
+  id: string;
 }
 
 interface Expense {
@@ -19,31 +22,110 @@ interface Expense {
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [showSignup, setShowSignup] = useState(false);
 
-  const handleAuth = (email: string, password: string) => {
-    // In a real app, this would call an authentication API
-    setUser({ email });
-    toast.success("Authentication successful!");
+  useEffect(() => {
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser({
+          email: session.user.email || "",
+          id: session.user.id,
+        });
+      }
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({
+          email: session.user.email || "",
+          id: session.user.id,
+        });
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const { data: expenses = [], refetch: refetchExpenses } = useQuery({
+    queryKey: ["expenses", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("expenses")
+        .select("*")
+        .order("date", { ascending: false });
+
+      if (error) {
+        toast.error("Failed to fetch expenses");
+        return [];
+      }
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const handleAuth = async (email: string, password: string) => {
+    try {
+      const { error } = showSignup
+        ? await supabase.auth.signUp({
+            email,
+            password,
+          })
+        : await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+
+      if (error) throw error;
+
+      toast.success(
+        showSignup
+          ? "Registration successful! Please check your email."
+          : "Login successful!"
+      );
+    } catch (error: any) {
+      toast.error(error.message);
+    }
   };
 
-  const handleAddExpense = (expenseData: Omit<Expense, "id">) => {
-    const newExpense = {
-      ...expenseData,
-      id: Math.random().toString(36).substr(2, 9),
-    };
-    setExpenses([newExpense, ...expenses]);
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast.success("Logged out successfully");
+    } catch (error: any) {
+      toast.error("Error logging out");
+    }
+  };
+
+  const handleAddExpense = async (expenseData: Omit<Expense, "id">) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase.from("expenses").insert({
+        ...expenseData,
+        user_id: user.id,
+      });
+
+      if (error) throw error;
+
+      toast.success("Expense added successfully!");
+      refetchExpenses();
+    } catch (error: any) {
+      toast.error("Error adding expense: " + error.message);
+    }
   };
 
   if (!user) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
         <h1 className="text-4xl font-bold mb-8 text-primary">Expense Tracker</h1>
-        <AuthForm
-          type={showSignup ? "signup" : "login"}
-          onSubmit={handleAuth}
-        />
+        <AuthForm type={showSignup ? "signup" : "login"} onSubmit={handleAuth} />
         <button
           onClick={() => setShowSignup(!showSignup)}
           className="mt-4 text-sm text-gray-600 hover:text-primary"
@@ -64,7 +146,7 @@ const Index = () => {
           <div className="flex items-center gap-4">
             <span className="text-gray-600">{user.email}</span>
             <button
-              onClick={() => setUser(null)}
+              onClick={handleLogout}
               className="text-sm text-gray-600 hover:text-primary"
             >
               Logout
