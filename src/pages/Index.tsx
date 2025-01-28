@@ -79,10 +79,16 @@ const Index = () => {
 
     try {
       setIsAuthLoading(true);
-      const { error } = showSignup
+      let { error } = showSignup
         ? await supabase.auth.signUp({
             email,
             password,
+            options: {
+              emailRedirectTo: window.location.origin,
+              data: {
+                email: email,
+              }
+            }
           })
         : await supabase.auth.signInWithPassword({
             email,
@@ -90,24 +96,15 @@ const Index = () => {
           });
 
       if (error) {
-        if (error.message.includes("rate_limit")) {
-          toast.error("Please wait a moment before trying again");
-        } else {
-          toast.error(error.message);
-        }
+        toast.error(error.message);
         return;
       }
 
-      toast.success(
-        showSignup
-          ? "Registration successful! Please check your email."
-          : "Login successful!"
-      );
+      // If we get here, the auth was successful
+      toast.success(showSignup ? "Signed up successfully!" : "Logged in successfully!");
+      
     } catch (error: any) {
-      const errorMessage = error.message.includes("rate_limit")
-        ? "Please wait a moment before trying again"
-        : error.message;
-      toast.error(errorMessage);
+      toast.error(error.message);
     } finally {
       setIsAuthLoading(false);
     }
