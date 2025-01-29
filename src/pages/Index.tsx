@@ -84,7 +84,7 @@ const Index = () => {
             email,
             password,
             options: {
-              emailRedirectTo: window.location.origin,
+              emailRedirectTo: window.location.origin + "/email-confirmed",
               data: {
                 email: email,
               }
@@ -96,12 +96,23 @@ const Index = () => {
           });
 
       if (error) {
-        toast.error(error.message);
+        if (error.message.includes('rate_limit')) {
+          toast.error("Please wait a moment before trying again");
+        } else {
+          toast.error(error.message);
+        }
         return;
       }
 
-      // If we get here, the auth was successful
-      toast.success(showSignup ? "Signed up successfully!" : "Logged in successfully!");
+      // Show success message
+      if (showSignup) {
+        toast.success("Please check your email to confirm your account!", {
+          duration: 6000,
+          description: "We've sent you an email with a confirmation link."
+        });
+      } else {
+        toast.success("Logged in successfully!");
+      }
       
     } catch (error: any) {
       toast.error(error.message);
