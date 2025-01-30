@@ -42,9 +42,17 @@ export function ExpensesChart({ expenses }: ExpensesChartProps) {
     for (let i = 0; i < 7; i++) {
       const date = new Date(monday);
       date.setDate(monday.getDate() + i);
-      weekDates.push(date.toISOString().split('T')[0]);
+      weekDates.push(date);
     }
     return weekDates;
+  };
+
+  const isDateInSameDay = (date1: Date, date2: Date) => {
+    return (
+      date1.getFullYear() === date2.getFullYear() &&
+      date1.getMonth() === date2.getMonth() &&
+      date1.getDate() === date2.getDate()
+    );
   };
 
   const weekDates = getCurrentWeekDates();
@@ -52,12 +60,11 @@ export function ExpensesChart({ expenses }: ExpensesChartProps) {
   const chartData = weekDates.map((date) => {
     const dayExpenses = expenses.filter((e) => {
       const expenseDate = new Date(e.date);
-      const compareDate = new Date(date);
-      return expenseDate.toDateString() === compareDate.toDateString() && e.category !== "Income";
+      return isDateInSameDay(expenseDate, date) && e.category !== "Income";
     });
     const total = dayExpenses.reduce((sum, e) => sum + e.amount, 0);
     return {
-      day: getDayName(date),
+      day: getDayName(date.toISOString()),
       amount: total,
     };
   });
