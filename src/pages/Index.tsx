@@ -3,6 +3,7 @@ import { AuthForm } from "@/components/auth/AuthForm";
 import { ExpenseForm } from "@/components/expenses/ExpenseForm";
 import { ExpensesList } from "@/components/expenses/ExpensesList";
 import { ExpensesChart } from "@/components/expenses/ExpensesChart";
+import { MonthlyFlowChart } from "@/components/expenses/MonthlyFlowChart";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -141,10 +142,10 @@ const Index = () => {
 
       if (error) throw error;
 
-      toast.success("Expense added successfully!");
+      toast.success("Transaction added successfully!");
       refetchExpenses();
     } catch (error: any) {
-      toast.error("Error adding expense: " + error.message);
+      toast.error("Error adding transaction: " + error.message);
     }
   };
 
@@ -190,7 +191,9 @@ const Index = () => {
           <ExpensesChart expenses={expenses} />
         </div>
 
-        <ExpensesList expenses={expenses} />
+        <MonthlyFlowChart expenses={expenses} />
+
+        <ExpensesList expenses={expenses} onExpenseUpdated={refetchExpenses} />
       </div>
     </div>
   );

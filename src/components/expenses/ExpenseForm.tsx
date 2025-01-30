@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -27,6 +27,7 @@ const CATEGORIES = [
   "Shopping",
   "Bills",
   "Other",
+  "Income",
 ];
 
 interface ExpenseFormProps {
@@ -36,13 +37,29 @@ interface ExpenseFormProps {
     notes: string;
     date: string;
   }) => void;
+  initialExpense?: {
+    amount: number;
+    category: string;
+    notes: string;
+    date: string;
+  };
+  submitLabel?: string;
 }
 
-export function ExpenseForm({ onSubmit }: ExpenseFormProps) {
+export function ExpenseForm({ onSubmit, initialExpense, submitLabel = "Add Expense" }: ExpenseFormProps) {
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
   const [notes, setNotes] = useState("");
   const [date, setDate] = useState<Date>(new Date());
+
+  useEffect(() => {
+    if (initialExpense) {
+      setAmount(initialExpense.amount.toString());
+      setCategory(initialExpense.category);
+      setNotes(initialExpense.notes);
+      setDate(new Date(initialExpense.date));
+    }
+  }, [initialExpense]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,18 +75,21 @@ export function ExpenseForm({ onSubmit }: ExpenseFormProps) {
       date: date.toISOString(),
     });
 
-    setAmount("");
-    setCategory("");
-    setNotes("");
-    setDate(new Date());
-    toast.success("Expense added successfully!");
+    if (!initialExpense) {
+      setAmount("");
+      setCategory("");
+      setNotes("");
+      setDate(new Date());
+    }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Add New Expense</CardTitle>
-      </CardHeader>
+    <Card className={cn(!initialExpense && "w-full")}>
+      {!initialExpense && (
+        <CardHeader>
+          <CardTitle>Add New Transaction</CardTitle>
+        </CardHeader>
+      )}
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -127,7 +147,7 @@ export function ExpenseForm({ onSubmit }: ExpenseFormProps) {
             />
           </div>
           <Button type="submit" className="w-full">
-            Add Expense
+            {submitLabel}
           </Button>
         </form>
       </CardContent>
