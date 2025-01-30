@@ -1,11 +1,10 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
   ResponsiveContainer,
   Legend,
 } from "recharts";
@@ -23,40 +22,53 @@ interface MonthlyFlowChartProps {
 
 export function MonthlyFlowChart({ expenses }: MonthlyFlowChartProps) {
   const getMonthData = () => {
-    const monthlyData: Record<string, { income: number; expenses: number }> = {};
+    const monthlyData: Record<string, { 
+      moneyIn: number; 
+      moneyOut: number;
+      categories: Record<string, number>;
+    }> = {};
     
     expenses.forEach((expense) => {
       const date = new Date(expense.date);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       
       if (!monthlyData[monthKey]) {
-        monthlyData[monthKey] = { income: 0, expenses: 0 };
+        monthlyData[monthKey] = { 
+          moneyIn: 0, 
+          moneyOut: 0,
+          categories: {}
+        };
       }
       
       if (expense.category === "Income") {
-        monthlyData[monthKey].income += expense.amount;
+        monthlyData[monthKey].moneyIn += expense.amount;
       } else {
-        monthlyData[monthKey].expenses += expense.amount;
+        monthlyData[monthKey].moneyOut += expense.amount;
+        if (!monthlyData[monthKey].categories[expense.category]) {
+          monthlyData[monthKey].categories[expense.category] = 0;
+        }
+        monthlyData[monthKey].categories[expense.category] += expense.amount;
       }
     });
 
     return Object.entries(monthlyData)
       .map(([month, data]) => ({
         month,
-        income: data.income,
-        expenses: data.expenses,
-        netFlow: data.income - data.expenses,
+        moneyIn: data.moneyIn,
+        moneyOut: data.moneyOut,
+        netCashflow: data.moneyIn - data.moneyOut,
+        ...data.categories
       }))
       .sort((a, b) => a.month.localeCompare(b.month))
-      .slice(-6); // Show last 6 months
+      .slice(-6);
   };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(value);
   };
 
@@ -64,37 +76,88 @@ export function MonthlyFlowChart({ expenses }: MonthlyFlowChartProps) {
     const [year, month] = monthKey.split("-");
     return new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString("en-US", {
       month: "short",
-      year: "2-digit",
     });
   };
 
   const data = getMonthData();
+  const currentMonth = data[data.length - 1];
+  const categories = [
+    { name: "Dining", color: "#FF6B6B" },
+    { name: "Entertainment & Leisure", color: "#4ECDC4" },
+    { name: "Shopping", color: "#45B7D1" },
+    { name: "Travel", color: "#96CEB4" },
+    { name: "Insurance", color: "#FFEEAD" }
+  ];
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Monthly Cash Flow</CardTitle>
+    <Card className="w-full">
+      <CardHeader className="flex flex-col items-center space-y-2">
+        <h2 className="text-xl font-semibold">Money In & Out</h2>
+        <div className="text-center">
+          <div className="text-sm text-gray-500">Net cashflow</div>
+          <div className="text-3xl font-bold">
+            {formatCurrency(currentMonth?.netCashflow || 0)}
+          </div>
+          <div className="text-sm text-gray-500">
+            As of {new Date().toLocaleDateString()}
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="h-[400px] w-full">
+        <div className="h-[300px] w-full mb-8">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
+            <BarChart data={data} barGap={0}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis 
                 dataKey="month" 
                 tickFormatter={formatMonth}
+                axisLine={false}
+                tickLine={false}
               />
-              <YAxis tickFormatter={formatCurrency} />
-              <Tooltip
-                formatter={(value: number) => formatCurrency(value)}
-                labelFormatter={formatMonth}
+              <YAxis 
+                tickFormatter={(value) => `${value}k`}
+                axisLine={false}
+                tickLine={false}
               />
+              <Bar dataKey="moneyIn" name="Money In" fill="#4ECDC4" />
+              <Bar dataKey="moneyOut" name="Money Out" fill="#FF6B6B" />
               <Legend />
-              <Bar dataKey="income" name="Income" fill="#10B981" />
-              <Bar dataKey="expenses" name="Expenses" fill="#EF4444" />
-              <Bar dataKey="netFlow" name="Net Flow" fill="#6366F1" />
             </BarChart>
           </ResponsiveContainer>
+        </div>
+
+        <div className="space-y-2 pt-4 border-t">
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="text-sm text-gray-500">Money In</div>
+              <div className="text-xl font-semibold text-[#4ECDC4]">
+                {formatCurrency(currentMonth?.moneyIn || 0)}
+              </div>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="text-sm text-gray-500">Money Out</div>
+              <div className="text-xl font-semibold text-[#FF6B6B]">
+                {formatCurrency(currentMonth?.moneyOut || 0)}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {categories.map((category) => (
+              <div key={category.name} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-3 h-3 rounded-sm"
+                    style={{ backgroundColor: category.color }}
+                  />
+                  <span>{category.name}</span>
+                </div>
+                <div className="font-semibold">
+                  {formatCurrency(currentMonth?.[category.name] || 0)}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </CardContent>
     </Card>
