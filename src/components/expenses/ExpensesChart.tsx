@@ -24,23 +24,19 @@ export function ExpensesChart({ expenses }: ExpensesChartProps) {
   const getDayName = (date: string) => {
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const d = new Date(date);
-    // Get day of week (0-6, starting from Sunday)
     const day = d.getDay();
-    // Convert to Monday-based index (0-6, starting from Monday)
     const mondayBasedIndex = day === 0 ? 6 : day - 1;
     return dayNames[mondayBasedIndex];
   };
 
-  // Get dates for Mon-Sun of current week
   const getCurrentWeekDates = () => {
     const today = new Date();
     const currentDay = today.getDay();
-    // Calculate days to subtract to get to Monday (0 = Sunday, so we need 6 for Monday)
     const diff = currentDay === 0 ? 6 : currentDay - 1;
     
     const monday = new Date(today);
     monday.setDate(today.getDate() - diff);
-    monday.setHours(0, 0, 0, 0); // Reset time part
+    monday.setHours(0, 0, 0, 0);
     
     const weekDates = [];
     for (let i = 0; i < 7; i++) {
@@ -57,7 +53,7 @@ export function ExpensesChart({ expenses }: ExpensesChartProps) {
     const dayExpenses = expenses.filter((e) => {
       const expenseDate = new Date(e.date);
       const compareDate = new Date(date);
-      return expenseDate.toDateString() === compareDate.toDateString();
+      return expenseDate.toDateString() === compareDate.toDateString() && e.category !== "Income";
     });
     const total = dayExpenses.reduce((sum, e) => sum + e.amount, 0);
     return {
@@ -66,7 +62,6 @@ export function ExpensesChart({ expenses }: ExpensesChartProps) {
     };
   });
 
-  // Sort the data to ensure Monday comes first
   const orderedDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const sortedChartData = [...chartData].sort((a, b) => 
     orderedDays.indexOf(a.day) - orderedDays.indexOf(b.day)
@@ -92,7 +87,7 @@ export function ExpensesChart({ expenses }: ExpensesChartProps) {
                   }).format(Number(value))
                 }
               />
-              <Bar dataKey="amount" fill="#10B981" />
+              <Bar dataKey="amount" fill="#FF6B6B" />
             </BarChart>
           </ResponsiveContainer>
         </div>

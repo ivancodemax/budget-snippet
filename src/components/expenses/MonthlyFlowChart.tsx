@@ -21,6 +21,15 @@ interface MonthlyFlowChartProps {
 }
 
 export function MonthlyFlowChart({ expenses }: MonthlyFlowChartProps) {
+  const CATEGORIES = [
+    "Food",
+    "Transport",
+    "Entertainment",
+    "Shopping",
+    "Bills",
+    "Other"
+  ];
+
   const getMonthData = () => {
     const monthlyData: Record<string, { 
       moneyIn: number; 
@@ -81,13 +90,14 @@ export function MonthlyFlowChart({ expenses }: MonthlyFlowChartProps) {
 
   const data = getMonthData();
   const currentMonth = data[data.length - 1];
-  const categories = [
-    { name: "Dining", color: "#FF6B6B" },
-    { name: "Entertainment & Leisure", color: "#4ECDC4" },
-    { name: "Shopping", color: "#45B7D1" },
-    { name: "Travel", color: "#96CEB4" },
-    { name: "Insurance", color: "#FFEEAD" }
-  ];
+  const categoryColors = {
+    "Food": "#FF6B6B",
+    "Transport": "#4ECDC4",
+    "Entertainment": "#45B7D1",
+    "Shopping": "#96CEB4",
+    "Bills": "#FFEEAD",
+    "Other": "#FFD93D"
+  };
 
   return (
     <Card className="w-full">
@@ -115,7 +125,7 @@ export function MonthlyFlowChart({ expenses }: MonthlyFlowChartProps) {
                 tickLine={false}
               />
               <YAxis 
-                tickFormatter={(value) => `${value}k`}
+                tickFormatter={(value) => `$${value}`}
                 axisLine={false}
                 tickLine={false}
               />
@@ -143,17 +153,17 @@ export function MonthlyFlowChart({ expenses }: MonthlyFlowChartProps) {
           </div>
 
           <div className="space-y-4">
-            {categories.map((category) => (
-              <div key={category.name} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
+            {CATEGORIES.map((category) => (
+              <div key={category} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
                 <div className="flex items-center gap-3">
                   <div 
                     className="w-3 h-3 rounded-sm"
-                    style={{ backgroundColor: category.color }}
+                    style={{ backgroundColor: categoryColors[category as keyof typeof categoryColors] }}
                   />
-                  <span>{category.name}</span>
+                  <span>{category}</span>
                 </div>
                 <div className="font-semibold">
-                  {formatCurrency(currentMonth?.[category.name] || 0)}
+                  {formatCurrency(currentMonth?.[category] || 0)}
                 </div>
               </div>
             ))}
